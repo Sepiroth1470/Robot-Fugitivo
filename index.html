@@ -1,0 +1,1019 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robot Fugitivo 3.0</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #080d1c;
+    color: white;
+    font-family: Arial, sans-serif;
+    user-select: none;
+}
+
+#fondo {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background:
+        radial-gradient(circle at center, #172650, #080d1c 85%);
+}
+
+#estrellas {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background-image:
+        radial-gradient(#ffffff 1px, transparent 1px);
+    background-size: 55px 55px;
+    opacity: .25;
+}
+
+.sprite {
+    position: fixed;
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+}
+
+robot-jugador {
+    z-index: 3;
+    font-size: 55px;
+}
+
+drone-enemigo {
+    z-index: 2;
+    font-size: 40px;
+}
+
+item-juego {
+    z-index: 2;
+    font-size: 34px;
+    filter: drop-shadow(0 0 8px #22eaff);
+}
+
+#panel {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+    pointer-events: none;
+}
+
+.grupo {
+    background: rgba(12, 25, 53, .94);
+    border: 1px solid #1ccdf2;
+    border-radius: 10px;
+    padding: 10px 14px;
+    box-shadow: 0 0 12px #087caa55;
+    font-size: 14px;
+}
+
+.grupo p {
+    margin: 5px 0;
+}
+
+#barraXP {
+    width: 180px;
+    height: 10px;
+    background: #26334c;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+#progresoXP {
+    width: 0%;
+    height: 100%;
+    background: #17d8ff;
+    transition: width .2s;
+}
+
+#estado {
+    color: #37e9ff;
+}
+
+#pantallaFinal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    justify-content: center;
+    align-items: center;
+    background: rgba(2, 6, 20, .92);
+}
+
+.contenido {
+    width: 90%;
+    max-width: 380px;
+    padding: 30px;
+    text-align: center;
+    background: #101d3c;
+    border: 2px solid #20d9ff;
+    border-radius: 18px;
+    box-shadow: 0 0 30px #00bfff55;
+}
+
+.contenido h1 {
+    color: #26dfff;
+}
+
+.contenido p {
+    color: #bac8e3;
+}
+
+button {
+    background: #12c9eb;
+    color: #061426;
+    border: none;
+    border-radius: 8px;
+    padding: 13px 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #70edff;
+}
+
+#mensajeNivel {
+    position: fixed;
+    top: 40%;
+    width: 100%;
+    z-index: 8;
+    text-align: center;
+    font-size: 32px;
+    font-weight: bold;
+    color: #39eaff;
+    text-shadow: 0 0 15px #00cfff;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#instrucciones {
+    position: fixed;
+    bottom: 12px;
+    width: 100%;
+    text-align: center;
+    color: #a6b6d3;
+    font-size: 13px;
+    pointer-events: none;
+}
+
+@media(max-width: 600px) {
+    .grupo {
+        padding: 7px 9px;
+        font-size: 12px;
+    }
+
+    #barraXP {
+        width: 120px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="fondo"></div>
+<div id="estrellas"></div>
+
+<!-- PANEL DEL JUEGO -->
+<div id="panel">
+
+    <div class="grupo">
+        <p>❤️ Vidas: <span id="vidas">❤️❤️❤️</span></p>
+        <p>⭐ Puntos: <span id="puntos">0</span></p>
+        <p>🏆 Récord: <span id="record">0</span></p>
+    </div>
+
+    <div class="grupo">
+        <p>🚀 Nivel: <span id="nivel">1</span></p>
+        <p>⚡ Experiencia:
+        <span id="xp">0</span> /
+        <span id="xpNecesaria">100</span></p>
+
+        <div id="barraXP">
+            <div id="progresoXP"></div>
+        </div>
+
+        <p id="estado">Sin protección</p>
+    </div>
+
+</div>
+
+<!-- JUGADOR -->
+<robot-jugador></robot-jugador>
+
+<!-- ENEMIGOS INICIALES -->
+<drone-enemigo></drone-enemigo>
+<drone-enemigo></drone-enemigo>
+<drone-enemigo></drone-enemigo>
+<drone-enemigo></drone-enemigo>
+<drone-enemigo></drone-enemigo>
+<drone-enemigo></drone-enemigo>
+
+<div id="mensajeNivel"></div>
+
+<div id="instrucciones">
+    ⌨️ Utiliza las flechas o WASD para moverte y esquivar los drones.
+    <br>
+    🔋 Recoge objetos para sobrevivir y subir de nivel.
+</div>
+
+<!-- PANTALLA FINAL -->
+<div id="pantallaFinal">
+    <div class="contenido">
+        <h1>💥 ¡Robot capturado!</h1>
+        <h2>Fin del juego</h2>
+
+        <p>Puntuación final:</p>
+        <h1 id="resultado">0</h1>
+
+        <p>Nivel alcanzado: <b id="nivelFinal">1</b></p>
+
+        <p>Récord: <b id="recordFinal">0</b></p>
+
+        <button onclick="location.reload()">
+            🔄 Volver a jugar
+        </button>
+    </div>
+</div>
+
+<script>
+
+// =====================================
+// CLASES ABSTRACTAS E INTERFAZ
+// =====================================
+
+/** @abstract */
+class Jugador extends HTMLElement {
+
+    izquierda(v) { throw new Error("abstract"); }
+    derecha(v) { throw new Error("abstract"); }
+    sube(v) { throw new Error("abstract"); }
+    baja(v) { throw new Error("abstract"); }
+}
+
+/** @abstract */
+class Figura extends HTMLElement {
+
+    muevete(jugador, velocidad) {
+        throw new Error("abstract");
+    }
+}
+
+/** @interface */
+class Fabrica {
+
+    jugador() { throw new Error("interface"); }
+    figuras() { throw new Error("interface"); }
+}
+
+// =====================================
+// JUGADOR
+// =====================================
+
+customElements.define("robot-jugador",
+
+class extends Jugador {
+
+    connectedCallback() {
+
+        this.classList.add("sprite");
+        this.innerHTML = "🤖";
+
+        this.style.left =
+            (innerWidth - 55) / 2 + "px";
+
+        this.style.top =
+            (innerHeight - 55) / 2 + "px";
+    }
+
+    izquierda(v) {
+        this.style.left =
+            limita(this.offsetLeft - v, innerWidth, this.offsetWidth) + "px";
+    }
+
+    derecha(v) {
+        this.style.left =
+            limita(this.offsetLeft + v, innerWidth, this.offsetWidth) + "px";
+    }
+
+    sube(v) {
+        this.style.top =
+            limita(this.offsetTop - v, innerHeight, this.offsetHeight) + "px";
+    }
+
+    baja(v) {
+        this.style.top =
+            limita(this.offsetTop + v, innerHeight, this.offsetHeight) + "px";
+    }
+});
+
+// =====================================
+// ENEMIGOS
+// =====================================
+
+customElements.define("drone-enemigo",
+
+class extends Figura {
+
+    connectedCallback() {
+
+        this.classList.add("sprite");
+        this.innerHTML = "🚁";
+
+        this.colocaAleatorio();
+    }
+
+    colocaAleatorio() {
+
+        const lado = Math.floor(Math.random() * 4);
+
+        let x, y;
+
+        if (lado === 0) {
+            x = Math.random() * innerWidth;
+            y = 0;
+        } else if (lado === 1) {
+            x = innerWidth - 50;
+            y = Math.random() * innerHeight;
+        } else if (lado === 2) {
+            x = Math.random() * innerWidth;
+            y = innerHeight - 50;
+        } else {
+            x = 0;
+            y = Math.random() * innerHeight;
+        }
+
+        this.style.left = x + "px";
+        this.style.top = y + "px";
+    }
+
+    muevete(jugador, velocidad) {
+
+        const r = this.getBoundingClientRect();
+        const j = jugador.getBoundingClientRect();
+
+        const dx = j.left - r.left;
+        const dy = j.top - r.top;
+
+        const distancia = Math.sqrt(dx * dx + dy * dy);
+
+        if (distancia === 0) return;
+
+        const x = r.left + dx / distancia * velocidad;
+        const y = r.top + dy / distancia * velocidad;
+
+        this.style.left = x + "px";
+        this.style.top = y + "px";
+    }
+});
+
+// =====================================
+// OBJETOS COLECCIONABLES
+// =====================================
+
+customElements.define("item-juego",
+
+class extends HTMLElement {
+
+    connectedCallback() {
+
+        this.classList.add("sprite");
+
+        const tipo = this.dataset.tipo;
+
+        const iconos = {
+            bateria: "🔋",
+            cristal: "💎",
+            energia: "⚡",
+            escudo: "🛡️"
+        };
+
+        this.innerHTML = iconos[tipo] || "⭐";
+    }
+});
+
+// =====================================
+// FÁBRICA
+// =====================================
+
+class MiFabrica {
+
+    constructor() {
+
+        this.jugadorSingleton =
+            document.querySelector("robot-jugador");
+    }
+
+    jugador() {
+        return this.jugadorSingleton;
+    }
+
+    figuras() {
+        return Array.from(
+            document.querySelectorAll("drone-enemigo")
+        );
+    }
+}
+
+// =====================================
+// FUNCIONES AUXILIARES
+// =====================================
+
+function limita(pos, max, tamano) {
+
+    return Math.max(
+        0,
+        Math.min(pos, max - tamano)
+    );
+}
+
+function colisiona(e1, e2) {
+
+    const a = e1.getBoundingClientRect();
+    const b = e2.getBoundingClientRect();
+
+    return (
+        a.right >= b.left &&
+        a.left <= b.right &&
+        a.bottom >= b.top &&
+        a.top <= b.bottom
+    );
+}
+
+function numeroAleatorio(min, max) {
+
+    return Math.floor(
+        Math.random() * (max - min + 1) + min
+    );
+}
+
+// =====================================
+// CLASE PRINCIPAL DEL JUEGO
+// =====================================
+
+class Juego {
+
+    constructor(fabrica) {
+
+        this.jugador = fabrica.jugador();
+        this.figuras = fabrica.figuras();
+
+        // VIDAS
+        this.vidas = 3;
+        this.vidasMaximas = 3;
+
+        // PUNTUACIÓN
+        this.puntos = 0;
+
+        // NIVEL Y EXPERIENCIA
+        this.nivel = 1;
+        this.xp = 0;
+        this.xpNecesaria = 100;
+
+        // DIFICULTAD
+        this.velocidad = 2.8;
+        this.maxEnemigos = 25;
+
+        // PROTECCIÓN
+        this.invulnerable = false;
+        this.tiempoEscudo = 0;
+        this.duracionEscudo = 6000;
+
+        // TIEMPOS
+        this.activo = true;
+        this.ultimoObjeto = Date.now();
+        this.ultimoPunto = Date.now();
+
+        // RÉCORD
+        this.record =
+            Number(localStorage.getItem("recordRobot")) || 0;
+
+        this.x = null;
+        this.y = null;
+    }
+
+    // =================================
+    // INICIAR
+    // =================================
+
+    inicia() {
+
+        document.addEventListener(
+            "keydown",
+            evt => this.teclas(evt)
+        );
+
+        document.addEventListener(
+            "touchstart",
+            evt => this.iniciaTouch(evt),
+            { passive: true }
+        );
+
+        document.addEventListener(
+            "touchmove",
+            evt => this.mueveTouch(evt),
+            { passive: true }
+        );
+
+        this.actualizaPanel();
+
+        this.interval = setInterval(
+            () => this.actualiza(),
+            50
+        );
+    }
+
+    // =================================
+    // BUCLE PRINCIPAL
+    // =================================
+
+    actualiza() {
+
+        if (!this.activo) return;
+
+        const ahora = Date.now();
+
+        // PUNTOS POR SUPERVIVENCIA
+        if (ahora - this.ultimoPunto >= 200) {
+
+            this.puntos += this.nivel;
+            this.ultimoPunto = ahora;
+        }
+
+        // ACTUALIZAR ESCUDO
+        this.actualizaEscudo(ahora);
+
+        // MOVIMIENTO DE ENEMIGOS
+        this.figuras.forEach(f => {
+
+            if (f.isConnected) {
+                f.muevete(this.jugador, this.velocidad);
+            }
+        });
+
+        // FRECUENCIA DE OBJETOS SEGÚN EL NIVEL
+        const intervaloObjetos = Math.max(
+            450,
+            1500 - (this.nivel * 120)
+        );
+
+        if (ahora - this.ultimoObjeto >= intervaloObjetos) {
+
+            this.creaObjeto();
+
+            this.ultimoObjeto = ahora;
+        }
+
+        // COLISIONES
+        this.detectaColisiones();
+
+        this.actualizaPanel();
+    }
+
+    // =================================
+    // CREAR OBJETOS
+    // =================================
+
+    creaObjeto() {
+
+        const tipos = [
+            "bateria",
+            "cristal",
+            "energia",
+            "escudo"
+        ];
+
+        // Evitar baterías si las vidas están completas
+        if (this.vidas >= this.vidasMaximas) {
+            tipos.splice(tipos.indexOf("bateria"), 1);
+        }
+
+        const tipo =
+            tipos[numeroAleatorio(0, tipos.length - 1)];
+
+        const objeto =
+            document.createElement("item-juego");
+
+        objeto.dataset.tipo = tipo;
+
+        const x = numeroAleatorio(30, Math.max(30, innerWidth - 65));
+        const y = numeroAleatorio(80, Math.max(80, innerHeight - 80));
+
+        objeto.style.left = x + "px";
+        objeto.style.top = y + "px";
+
+        document.body.appendChild(objeto);
+    }
+
+    // =================================
+    // RECOGER OBJETOS
+    // =================================
+
+    recogeObjeto(objeto) {
+
+        const tipo = objeto.dataset.tipo;
+
+        switch(tipo) {
+
+            case "bateria":
+
+                if (this.vidas < this.vidasMaximas) {
+                    this.vidas++;
+                }
+
+                break;
+
+            case "cristal":
+
+                this.puntos += 100 * this.nivel;
+                this.xp += 15;
+                this.compruebaNivel();
+
+                break;
+
+            case "energia":
+
+                this.xp += 60;
+                this.compruebaNivel();
+
+                break;
+
+            case "escudo":
+
+                this.tiempoEscudo =
+                    Date.now() + this.duracionEscudo;
+
+                this.invulnerable = true;
+
+                break;
+        }
+
+        objeto.remove();
+
+        this.actualizaPanel();
+    }
+
+    // =================================
+    // SISTEMA DE NIVELES
+    // =================================
+
+    compruebaNivel() {
+
+        while (this.xp >= this.xpNecesaria) {
+
+            this.xp -= this.xpNecesaria;
+
+            this.nivel++;
+
+            this.xpNecesaria += 50;
+
+            // Aumentar velocidad
+            this.velocidad += 0.55;
+
+            // MOSTRAR NIVEL
+            this.mensajeNivel();
+
+            // DOS NUEVOS ENEMIGOS CADA DOS NIVELES
+            if (this.nivel % 2 === 0) {
+
+                for (let i = 0; i < 2; i++) {
+
+                    if (this.figuras.length < this.maxEnemigos) {
+                        this.creaEnemigo();
+                    }
+                }
+            }
+
+            // BONIFICACIÓN DE PUNTOS
+            this.puntos += 100 * this.nivel;
+        }
+
+        this.actualizaPanel();
+    }
+
+    mensajeNivel() {
+
+        const mensaje =
+            document.getElementById("mensajeNivel");
+
+        mensaje.innerHTML =
+            "🚀 ¡NIVEL " + this.nivel + "!";
+
+        mensaje.style.transition = "none";
+        mensaje.style.opacity = "1";
+
+        setTimeout(() => {
+
+            mensaje.style.transition = "opacity 1s";
+            mensaje.style.opacity = "0";
+
+        }, 1100);
+    }
+
+    // =================================
+    // CREAR ENEMIGOS
+    // =================================
+
+    creaEnemigo() {
+
+        const enemigo =
+            document.createElement("drone-enemigo");
+
+        document.body.appendChild(enemigo);
+
+        this.figuras.push(enemigo);
+    }
+
+    // =================================
+    // SISTEMA DE VIDAS
+    // =================================
+
+    recibeDanio() {
+
+        if (this.invulnerable) return;
+
+        this.vidas--;
+
+        if (this.vidas <= 0) {
+
+            this.termina();
+            return;
+        }
+
+        // PROTECCIÓN TEMPORAL
+        this.invulnerable = true;
+
+        this.tiempoEscudo = Date.now() + 1500;
+
+        // REUBICAR ENEMIGOS QUE ESTÉN CHOCANDO
+        this.figuras.forEach(f => {
+
+            if (colisiona(this.jugador, f)) {
+                f.colocaAleatorio();
+            }
+        });
+
+        this.actualizaPanel();
+    }
+
+    actualizaEscudo(ahora) {
+
+        if (
+            this.invulnerable &&
+            ahora >= this.tiempoEscudo
+        ) {
+
+            this.invulnerable = false;
+        }
+
+        if (this.invulnerable) {
+
+            this.jugador.style.opacity =
+                Math.floor(ahora / 150) % 2 === 0
+                    ? "0.35"
+                    : "1";
+
+        } else {
+
+            this.jugador.style.opacity = "1";
+        }
+    }
+
+    // =================================
+    // DETECCIÓN DE COLISIONES
+    // =================================
+
+    detectaColisiones() {
+
+        // ENEMIGOS
+        for (const enemigo of this.figuras) {
+
+            if (
+                enemigo.isConnected &&
+                colisiona(this.jugador, enemigo)
+            ) {
+
+                if (!this.invulnerable) {
+                    this.recibeDanio();
+                }
+
+                break;
+            }
+        }
+
+        // OBJETOS
+        const objetos = Array.from(
+            document.querySelectorAll("item-juego")
+        );
+
+        for (const objeto of objetos) {
+
+            if (colisiona(this.jugador, objeto)) {
+                this.recogeObjeto(objeto);
+            }
+        }
+    }
+
+    // =================================
+    // PANEL DE INFORMACIÓN
+    // =================================
+
+    actualizaPanel() {
+
+        document.getElementById("vidas").textContent =
+            "❤️".repeat(this.vidas) +
+            "🖤".repeat(this.vidasMaximas - this.vidas);
+
+        document.getElementById("puntos").textContent =
+            this.puntos;
+
+        document.getElementById("record").textContent =
+            Math.max(this.record, this.puntos);
+
+        document.getElementById("nivel").textContent =
+            this.nivel;
+
+        document.getElementById("xp").textContent =
+            this.xp;
+
+        document.getElementById("xpNecesaria").textContent =
+            this.xpNecesaria;
+
+        const porcentaje =
+            (this.xp / this.xpNecesaria) * 100;
+
+        document.getElementById("progresoXP").style.width =
+            porcentaje + "%";
+
+        document.getElementById("estado").textContent =
+            Date.now() < this.tiempoEscudo
+                ? "🛡️ Protección activa"
+                : "Sin protección";
+    }
+
+    // =================================
+    // CONTROLES DE TECLADO
+    // =================================
+
+    teclas(evt) {
+
+        if (!this.activo) return;
+
+        const v = 25;
+
+        switch(evt.key) {
+
+            case "ArrowLeft":
+            case "a":
+            case "A":
+
+                evt.preventDefault();
+                this.jugador.izquierda(v);
+                break;
+
+            case "ArrowRight":
+            case "d":
+            case "D":
+
+                evt.preventDefault();
+                this.jugador.derecha(v);
+                break;
+
+            case "ArrowUp":
+            case "w":
+            case "W":
+
+                evt.preventDefault();
+                this.jugador.sube(v);
+                break;
+
+            case "ArrowDown":
+            case "s":
+            case "S":
+
+                evt.preventDefault();
+                this.jugador.baja(v);
+                break;
+        }
+
+        this.detectaColisiones();
+    }
+
+    // =================================
+    // CONTROLES TÁCTILES
+    // =================================
+
+    iniciaTouch(evt) {
+
+        if (!this.activo) return;
+
+        this.x = evt.touches[0].clientX;
+        this.y = evt.touches[0].clientY;
+    }
+
+    mueveTouch(evt) {
+
+        if (
+            !this.activo ||
+            this.x === null ||
+            this.y === null
+        ) return;
+
+        const dx =
+            evt.touches[0].clientX - this.x;
+
+        const dy =
+            evt.touches[0].clientY - this.y;
+
+        if (Math.abs(dx) + Math.abs(dy) > 40) {
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+
+                dx > 0
+                    ? this.jugador.derecha(35)
+                    : this.jugador.izquierda(35);
+
+            } else {
+
+                dy > 0
+                    ? this.jugador.baja(35)
+                    : this.jugador.sube(35);
+            }
+
+            this.x = null;
+            this.y = null;
+
+            this.detectaColisiones();
+        }
+    }
+
+    // =================================
+    // TERMINAR JUEGO
+    // =================================
+
+    termina() {
+
+        this.activo = false;
+
+        clearInterval(this.interval);
+
+        this.jugador.innerHTML = "💥";
+
+        if (this.puntos > this.record) {
+
+            this.record = this.puntos;
+
+            localStorage.setItem(
+                "recordRobot",
+                this.record
+            );
+        }
+
+        document.getElementById("resultado").textContent =
+            this.puntos;
+
+        document.getElementById("nivelFinal").textContent =
+            this.nivel;
+
+        document.getElementById("recordFinal").textContent =
+            this.record;
+
+        document.getElementById("pantallaFinal").style.display =
+            "flex";
+    }
+}
+
+// =====================================
+// INICIAR JUEGO
+// =====================================
+
+const fabrica = new MiFabrica();
+
+const juego = new Juego(fabrica);
+
+juego.inicia();
+
+</script>
+
+</body>
+</html>
